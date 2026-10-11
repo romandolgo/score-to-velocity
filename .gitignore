@@ -221,6 +221,7 @@ __marimo__/
 
 # Claude
 CLAUDE.md
+.DS_Store
 
 # DSBM on images: downloaded datasets and run outputs
 Experiments/p5_images/data/
