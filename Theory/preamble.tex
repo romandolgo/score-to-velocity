@@ -1,0 +1,297 @@
+% Shared preamble: packages, boxes, commands. NOT a standalone document.
+
+\usepackage{amsthm, amsfonts, amssymb, mathtools}
+\usepackage[utf8]{inputenc}
+\usepackage[T2A]{fontenc}
+\usepackage[english, russian]{babel}
+\usepackage{microtype}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{array}
+\usetikzlibrary{shapes.symbols}
+% РЕШЕНИЕ ПРОБЛЕМЫ С color И babel
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\endtcolorbox}{\end{lrbox}}{\color@reset\end{lrbox}}{}{}
+\patchcmd{\tcb@break@end}{\end{tcb@savebox}}{\color@reset\end{tcb@savebox}}{}{}
+\makeatother
+
+\widowpenalty=10000
+
+\newtcolorbox{dashframe}{
+  enhanced,
+  frame hidden, % полностью убираем стандартную рамку
+  interior hidden,
+  arc=2mm,
+  left=6pt, right=6pt, top=6pt, bottom=6pt,
+  breakable,
+  overlay={
+    \draw[dash pattern=on 4pt off 2pt]
+      (frame.south west) rectangle (frame.north east);
+  }
+}
+
+\newtcolorbox{corollary}[1][]{
+  enhanced,
+  colback=cyan!5,
+  colframe=cyan!60,
+  breakable,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  title={%
+    \textbf{Следствие}%
+    \IfBlankTF{#1}{}{ \text{#1}}%
+  }
+}
+
+\newcounter{theorem}[section]
+
+\newtcolorbox[auto counter, number within=section]{theorem}[1][]{
+  enhanced,
+  colback=blue!4,
+  colframe=blue!60!black,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  breakable,
+  title={%
+    \textbf{Теорема \thetcbcounter}%
+    \IfBlankTF{#1}{}{ ({\itshape #1})}%
+  }
+}
+\newtcolorbox{thmproof}{
+  enhanced,
+  breakable,
+  colback=gray!3,
+  colframe=gray!50!black,
+  coltitle=black,
+  fonttitle=\bfseries\itshape,
+  left=17pt,
+  right=8pt,
+  top=8pt,
+  bottom=8pt,
+  boxrule=0.8pt,
+  arc=4pt,
+}
+
+\newcommand{\circled}[1]{%
+  \tikz[baseline=(char.base)]{%
+    \node[circle, draw, minimum size=0.3em, inner sep=2pt, line width=0.06em] (char) {%
+      \normalfont #1%
+    };
+  }%
+}
+
+\newcommand{\cloud}[1]{%
+  \begin{tikzpicture}
+    \node[cloud, draw, fill=white, aspect=3, inner sep=3pt] {#1};
+  \end{tikzpicture}%
+}
+
+\linespread{1.3}
+
+\tcbuselibrary{theorems, skins}
+
+\newtcolorbox[auto counter, number within=section]{lemma}[1][]{
+  enhanced,
+  breakable,
+  colback=green!5,
+  colframe=green!60!black,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  title={%
+    \textbf{Лемма \thetcbcounter}%
+    \IfBlankTF{#1}{}{ ({\itshape #1})}%
+  }
+}
+
+\newtcolorbox{definition}[1][]{
+  enhanced,
+  breakable,
+  colback=orange!5,
+  colframe=orange!60!black,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  title={%
+    \textbf{Определение}%
+    \IfBlankTF{#1}{}{ ({\itshape #1})}%
+  }
+}
+
+\newtcolorbox{designation}[1][]{
+  breakable,
+  enhanced,
+  colback=purple!5,
+  colframe=purple!60!black,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  title={%
+    \textbf{Обозначение}%
+    \IfBlankTF{#1}{}{ ({\itshape #1})}%
+  }
+}
+
+\newtcolorbox{example}[1][]{
+  breakable,
+  enhanced,
+  colback=teal!5,
+  colframe=teal!60!black,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  title={%
+    \textbf{Пример}%
+    \IfBlankTF{#1}{}{ ({\itshape #1})}%
+  },
+}
+
+\newtcolorbox{nota bene}[1][]{
+  breakable,
+  enhanced,
+  colback=red!5,
+  colframe=red!60!black,
+  fonttitle=\bfseries,
+  left=8pt,
+  right=8pt,
+  top=10pt,
+  bottom=8pt,
+  title={%
+    \textbf{\circled{NB}}%
+    \IfBlankTF{#1}{}{ ({\itshape #1})}%
+  }
+}
+
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+%TeXporter:DefineEmojiColors
+\definecolor{c0a0808}{RGB}{10,8,8}
+\definecolor{cff0000}{RGB}{255,0,0}
+\definecolor{cff9700}{RGB}{255,151,0}
+\definecolor{c1a0f00}{RGB}{26,15,0}
+\definecolor{c782121}{RGB}{120,33,33}
+\definecolor{cffffff}{RGB}{255,255,255}
+\definecolor{cffefef}{RGB}{255,239,239}
+\definecolor{c250303}{RGB}{37,3,3}
+\definecolor{ce3dbdb}{RGB}{227,219,219}
+\definecolor{cd45500}{RGB}{212,85,0}
+\definecolor{cffd42a}{RGB}{255,212,42}
+\definecolor{caa4400}{RGB}{170,68,0}
+\definecolor{cff5555}{RGB}{255,85,85}
+\definecolor{cffff00}{RGB}{255,255,0}
+\definecolor{c5a5a5a}{RGB}{90,90,90}
+\definecolor{ce9c900}{RGB}{233,201,0}
+\definecolor{c2b0000}{RGB}{43,0,0}
+\definecolor{c00ffff}{RGB}{0,255,255}
+%TeXporter:EndDefineEmojiColors
+
+\newcommand{\CreateSadFace}{%
+\begin{tikzpicture}[scale=0.25]  % изменяйте масштаб (0.25 = маленький)
+% Head
+\pgfdeclareradialshading{ballshading}{\pgfpoint{-10bp}{10bp}}
+{color(0bp)=(yellow!40!white);
+color(9bp)=(orange!85!white);
+color(18bp)=(orange!90!blue);
+color(25bp)=(yellow!80!blue);
+color(50bp)=(black)}
+\pgfpathcircle{\pgfpoint{0cm}{0cm}}{2cm}
+\pgfshadepath{ballshading}{20}
+\pgfusepath{}
+\pgfdeclareradialshading{ballshading}{\pgfpoint{-10bp}{10bp}}
+{color(0bp)=(yellow!40!white);
+color(9bp)=(yellow!30!white);
+color(18bp)=(yellow!60!orange);
+color(25bp)=(yellow!50!orange);
+color(50bp)=(orange)}
+\pgfpathcircle{\pgfpoint{0cm}{0cm}}{1.85cm}
+\pgfshadepath{ballshading}{20}
+\pgfusepath{}
+% Head hat
+\path[yshift=138,xshift=-140,scale=0.012,yscale=-1, fill=white,opacity=0.234] (411.4196,246.6473) .. controls
+(344.7661,246.6473) and (288.7870,289.5501) .. (273.0134,347.5848) .. controls
+(311.3176,336.0898) and (355.6292,329.4911) .. (402.8571,329.4911) .. controls
+(457.9662,329.4911) and (509.1043,338.4615) .. (551.3571,353.7411) .. controls
+(537.9844,292.6125) and (480.4076,246.6473) .. (411.4196,246.6473) -- cycle;
+
+\draw[inner color=white ,outer color=c782121!20!white]
+(-0.8,0.1) circle (0.35);
+\fill[inner color=black ,outer color=black!20!white]
+(-0.8,-0.05) circle (0.15);
+
+\draw[inner color=white ,outer color=c782121!20!white]
+(0.8,0.1) circle (0.35);
+\fill[inner color=black ,outer color=black!20!white]
+(0.8,-0.05) circle (0.14);
+
+\path[xshift=-90,yshift=122,scale=0.06,yscale=-1,draw=brown!70!black,inner color=c782121!70!yellow,outer color=c782121!60!black]
+(46.74375,50.94375) .. controls (44.20450,57.00941) and (38.54312,61.64973) ..
+(31.56875,63.20938) .. controls (32.36042,63.35032) and (33.17901,63.42500) ..
+(34.01562,63.42500) .. controls (41.06052,63.42500) and (46.77188,58.18907) ..
+(46.77188,51.73125) .. controls (46.77188,51.46641) and (46.76266,51.20420) ..
+(46.74375,50.94375) -- cycle;
+
+\path[xshift=90,yshift=122,scale=0.06,yscale=-1,xscale=-1,draw=brown!70!black,inner color=c782121!70!yellow,outer color=c782121!60!black]
+(46.74375,50.94375) .. controls (44.20450,57.00941) and (38.54312,61.64973) ..
+(31.56875,63.20938) .. controls (32.36042,63.35032) and (33.17901,63.42500) ..
+(34.01562,63.42500) .. controls (41.06052,63.42500) and (46.77188,58.18907) ..
+(46.77188,51.73125) .. controls (46.77188,51.46641) and (46.76266,51.20420) ..
+(46.74375,50.94375) -- cycle;
+
+\path[xshift=55,yshift=-10,scale=0.0065,yscale=-0.8,xscale=-0.8,draw=black,inner color=cff5555!80!black,outer color=c782121!60!black]
+(359.6464,67.3100) .. controls (278.1326,67.3100)
+and (211.4129,129.5159) .. (205.8964,208.2475) .. controls (250.9411,190.8018)
+and (304.2674,180.7163) .. (361.4277,180.7163) .. controls (417.0568,180.7163)
+and (469.0358,190.2795) .. (513.3027,206.8725) .. controls (507.1094,128.7941)
+and (440.6844,67.3100) .. (359.6464,67.3100) -- cycle;
+\fill[xshift=55,yshift=-10,scale=0.0065,yscale=-0.8,xscale=-0.8,inner color=white,outer color=ce3dbdb!80!black,line width=0.2]
+(359.6346,72.6265) .. controls (315.4332,72.6265)
+and (275.6110,90.9215) .. (247.5096,120.2202) .. controls (283.3018,112.3912)
+and (322.3429,108.0640) .. (363.1971,108.0640) .. controls (400.7202,108.0640)
+and (436.6908,111.7186) .. (470.0408,118.3765) .. controls (442.0468,90.1452)
+and (402.9104,72.6265) .. (359.6346,72.6265) -- cycle;
+
+\fill[xshift=-63,yshift=5,scale=0.025,yscale=-1,inner color=blue!10!white,outer color=blue!80!white]
+(37.38189,16.83071) -- (24.98031,58.99606) .. controls (24.04934,63.33741) and
+(24.68778,67.99808) .. (26.75197,71.92913) .. controls (27.87220,74.06251) and
+(29.41478,75.99641) .. (31.36401,77.41300) .. controls (33.31324,78.82959) and
+(35.68099,79.70975) .. (38.09055,79.72441) .. controls (40.70723,79.74033) and
+(43.28208,78.73161) .. (45.33407,77.10784) .. controls (47.38607,75.48408) and
+(48.93151,73.27201) .. (49.96063,70.86614) .. controls (51.54908,67.15267) and
+(51.92699,62.93268) .. (51.02362,58.99606) -- (37.38189,16.83071);
+
+\fill[xshift=-55,yshift=-9,scale=0.017,yscale=-1,inner color=blue!5!white,outer color=blue!20!white,opacity=0.1]
+(37.38189,16.83071) -- (24.98031,58.99606) .. controls (24.04934,63.33741) and
+(24.68778,67.99808) .. (26.75197,71.92913) .. controls (27.87220,74.06251) and
+(29.41478,75.99641) .. (31.36401,77.41300) .. controls (33.31324,78.82959) and
+(35.68099,79.70975) .. (38.09055,79.72441) .. controls (40.70723,79.74033) and
+(43.28208,78.73161) .. (45.33407,77.10784) .. controls (47.38607,75.48408) and
+(48.93151,73.27201) .. (49.96063,70.86614) .. controls (51.54908,67.15267) and
+(51.92699,62.93268) .. (51.02362,58.99606) -- (37.38189,16.83071);
+\fill[xshift=-52,yshift=-17,scale=0.013,yscale=-1,fill=white,opacity=0.4]
+(37.38189,16.83071) -- (24.98031,58.99606) .. controls (24.04934,63.33741) and
+(24.68778,67.99808) .. (26.75197,71.92913) .. controls (27.87220,74.06251) and
+(29.41478,75.99641) .. (31.36401,77.41300) .. controls (33.31324,78.82959) and
+(35.68099,79.70975) .. (38.09055,79.72441) .. controls (40.70723,79.74033) and
+(43.28208,78.73161) .. (45.33407,77.10784) .. controls (47.38607,75.48408) and
+(48.93151,73.27201) .. (49.96063,70.86614) .. controls (51.54908,67.15267) and
+(51.92699,62.93268) .. (51.02362,58.99606) -- (37.38189,16.83071);
+\end{tikzpicture}%
+}

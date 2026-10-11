@@ -1,0 +1,160 @@
+% Main template for theory notes and problem solutions.
+\documentclass[a4paper, 12pt]{article}
+\input{preamble.tex}
+
+% Document metadata
+\title{Theory and Solutions}
+\author{Author Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Первое задание (Броуновский мост)}
+
+\begin{definition}[Броуновский мост]
+  Броуновским мостом из $x_0$ в $x_1$ на отрезке $[0, 1]$ называется винеровский процесс, в котором $W_0 = x_0$ и $W_1 = x_1$
+\end{definition}
+
+\textbf{Задание} \textit{(Броуновсий мост)}. Вывести распределение промежуточной точки, например как условное гауссово распределение $W_t$ при известном $W_1$.
+
+\textbf{Решение.} Рассмотрим броуновский мост из $x_0$ в $x_1$ на $[a,b]$, тогда хотим найти распределение $W_t: a < t < b$.
+
+\begin{equation}
+  p(x_t \mid x_a, x_b) = \frac{p(x_b \mid x_t) p(x_t \mid x_a)}{p(x_b \mid x_a)} \qquad \text{(по марковости процесса)}
+\end{equation}
+
+По определению винеровского процесса с дисперсией $\varepsilon$:
+\[
+\begin{aligned}
+W_t\mid W_a=x_a
+&\sim \mathcal N(x_a,\varepsilon(t-a)I),\\
+W_b\mid W_t=x_t
+&\sim \mathcal N(x_t,\varepsilon(b-t)I),\\
+W_b\mid W_a=x_a
+&\sim \mathcal N(x_a,\varepsilon(b-a)I).
+\end{aligned}
+\]
+
+Подставим плотности найденных распределений в формулу (1), запишем чему $p(x_t \mid x_a, x_b)$:
+
+\[
+\begin{aligned}
+p(x_t \mid x_a, x_b)
+&= \frac{
+\frac{1}{[2\pi\varepsilon(b-t)]^{d/2}}
+\exp\left(-\frac{\|x_b-x_t\|^2}{2\varepsilon(b-t)}\right)
+\cdot
+\frac{1}{[2\pi\varepsilon(t-a)]^{d/2}}
+\exp\left(-\frac{\|x_t-x_a\|^2}{2\varepsilon(t-a)}\right)
+}{
+\frac{1}{[2\pi\varepsilon(b-a)]^{d/2}}
+\exp\left(-\frac{\|x_b-x_a\|^2}{2\varepsilon(b-a)}\right)
+} \\
+&= C \cdot
+\frac{
+\exp\left(-\frac{\|x_b-x_t\|^2}{2\varepsilon(b-t)}\right)
+\exp\left(-\frac{\|x_t-x_a\|^2}{2\varepsilon(t-a)}\right)
+}{
+\exp\left(-\frac{\|x_b-x_a\|^2}{2\varepsilon(b-a)}\right)
+} \\
+&= C \,\exp\left(-\frac{\|x_b-x_t\|^2}{2\varepsilon(b-t)}-\frac{\|x_t-x_a\|^2}{2\varepsilon(t-a)}+\frac{\|x_b-x_a\|^2}{2\varepsilon(b-a)}\right) \\ &\propto \exp\left( -\frac{1}{2\varepsilon} \left[ \frac{\|x_t - x_a\|^2}{t - a} + \frac{\|x_b - x_t\|^2}{b - t} \right]\right)
+\end{aligned}
+\] 
+
+Нетрудно убедиться, что выражение выше преобразуется в:
+\(
+\exp\left(
+-\frac{
+\left\|x_t-
+\frac{(b-t)x_a+(t-a)x_b}{b-a}
+\right\|^2
+}{
+2\varepsilon\frac{(t-a)(b-t)}{b-a}
+}
+\right)
+\), которое имеет вид $\exp\left(-\frac{\|x - \mu\|^2}{2\sigma^2}\right)$, а значит 
+
+\[
+\boxed{
+W_t\mid(W_a=x_a,W_b=x_b)
+\sim
+\mathcal N\left(
+\frac{(b-t)x_a+(t-a)x_b}{b-a},
+\varepsilon\frac{(t-a)(b-t)}{b-a}I
+\right).
+}
+\] 
+
+\newpage
+
+\section{Второе задание. Цель в лоссе BM}
+
+Пусть исходная мера на путях --- $\mathbb{P}$. Хотим определить меру $\mathbb{Q}$, соответствующую условию $X_T = x_1$: $\forall A \in \mathcal{F}_t, \, t < T: \, \mathbb{Q}(A) = \mathbb{P}(A \mid X_t = x_1)$. Применив формулу Байеса, нетрудно получить выражение для правой части:
+
+\begin{equation}
+  \mathbb{P}(A \mid X_t = x_1) = \frac{\mathbb{E}_\mathbb{P} \left[ \mathbf{1}_A \ p(T, x_1 \mid t, X_t) \right]}{p(T, x_1 \mid 0, x_0)}
+\end{equation}
+
+Введём функцию $h(t, x) = p(T, x_1 \mid t, x) $. Подставив функцию в (2), получим следующее:
+
+\begin{equation}
+  \mathbb{Q}(A) = \mathbb{E}_\mathbb{P} \left[ \mathbf{1}_A \frac{h(t, x_t)}{h(0, x_0)} \right]
+\end{equation}
+
+\begin{definition}[Производная Радона --- Никодима]
+  \(
+\mathbb Q\ll\mathbb P
+\implies
+\exists Z=\frac{d\mathbb Q}{d\mathbb P}\geq 0:
+\quad
+\mathbb Q(A)=\int_A Z\,d\mathbb P
+\).  $Z$ --- производная Радона --- Никодима.
+
+где \(A\in\mathcal F\), а \(\mathbb Q\ll\mathbb P\) означает:
+\(
+\mathbb P(A)=0\implies\mathbb Q(A)=0.
+\)
+\end{definition}
+
+Нетрудно проверить, что если \(
+\mathbb Q(A)=\mathbb E_{\mathbb P}[\mathbf 1_A Z],
+\)
+то $\dfrac{d\mathbb{Q}}{d\mathbb{P}} = Z$. Таким образом, получаем 
+
+\begin{equation}
+  Z_t = \frac{d\mathbb{Q}}{d\mathbb{P}} \bigg\vert_{\mathcal{F}_t} = \frac{h(t, X_t)}{h(0, x_0)}
+\end{equation}
+
+Поскольку наши $X_t$ распределены нормально, то мы можем явно выписать вид $h(t, x)$, в частности, мы знаем $\nabla_x \log{h(t, x)}, \, \partial_t \log{h(t, x)}$. Применим формулу Ито для $h(t, X_t)$ и SDE $dX_t = \sqrt\varepsilon dW_t$:
+
+\[
+\begin{aligned}
+  dh(t, X_t) &= \left(\partial_t h + \frac{\varepsilon}{2} \Delta h\right) dt + \sqrt\varepsilon \nabla h^\top dW_t \\&= \underbrace{\left[ \delta_t h + \frac{\varepsilon}{2} \Delta h = 0 \right]}_{\text{Обратное уравнение теплопроводности}}  = \sqrt\varepsilon \nabla h^\top d W_t
+\end{aligned}
+\]
+
+Тогда $dZ_t  = Z_t \sqrt\varepsilon \nabla \log{h(t, X_t)}^\top dW_t \Rightarrow dZ_t = Z_t \dfrac{(x_1 - X_t)^\top}{\sqrt\varepsilon(T-t)} dW_t $  
+
+\begin{lemma}[Доказательства не будет]
+  \[
+q(y,s\mid x,t)
+=
+p(y,s\mid x,t)\frac{h(s,y)}{h(t,x)}.
+\]
+\end{lemma}
+
+Используя лемму 2.1 для броуновского движения, получим
+\begin{equation}
+  X_{t + \Delta} \mid X_t = x \sim \mathcal{N}\left( x + \frac{\Delta}{T-t} (x_1 - x), \, \varepsilon \Delta \frac{T - t - \Delta}{T - t} I \right) \Rightarrow \mathbb{E}_\mathbb{Q} \left[ X_{t + \Delta} - X_t \mid X_t = x \right] = \frac{\Delta}{T - t} (x_1 - x)
+\end{equation}
+
+Поделив (5) на $\Delta$ и перейдя к пределу $\Delta \downarrow 0$, получим дрейф броуновского моста --- $\dfrac{x_1 - x}{T - t}$ и коэффициент диффузии --- $\varepsilon \Delta I$, т.е. такой же. $\square$
+
+
+
+
+\end{document}

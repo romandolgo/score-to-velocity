@@ -1,0 +1,114 @@
+% Main template for theory notes and problem solutions.
+\documentclass[a4paper, 12pt]{article}
+\input{preamble.tex}
+
+% Document metadata
+\title{Theory and Solutions}
+\author{Author Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================
+% SECTION 1: Theory
+% Use this section for definitions, theorems, proofs, remarks.
+% ============================================================
+\section{Theory}
+
+% --- Definition block ---
+% Optional argument in [...] adds a name, e.g. \begin{definition}[Group]
+\begin{definition}[Name]
+  Write the definition here.
+\end{definition}
+
+% --- Designation block (notation / conventions) ---
+\begin{designation}
+  Introduce notation here, e.g. $\mathbb{N}$, $\mathbb{Z}$, etc.
+\end{designation}
+
+% --- Theorem block ---
+% Numbered automatically within the current section.
+\begin{theorem}[Name]
+  State the theorem here.
+\end{theorem}
+
+% --- Proof box ---
+% Plain gray box, use it right after theorem / lemma.
+\begin{thmproof}
+  \textbf{\textit{Proof.}} Write the proof here.
+\end{thmproof}
+
+% --- Lemma block ---
+\begin{lemma}[Name]
+  State the lemma here.
+\end{lemma}
+
+% --- Corollary block ---
+\begin{corollary}[Name]
+  State the corollary here.
+\end{corollary}
+
+% --- Important remark (NB = Nota Bene) ---
+\begin{nota bene}[Title]
+  Key point to remember.
+\end{nota bene}
+
+% --- Example block ---
+\begin{example}
+  Worked example or illustration.
+\end{example}
+
+% --- Dashed frame ---
+% Neutral box for remarks, questions, TODOs.
+\begin{dashframe}
+  Additional comment or open question.
+\end{dashframe}
+
+% --- Inline helpers defined in preamble ---
+% \circled{X} draws a circled symbol, \cloud{text} draws a cloud callout.
+Inline helpers: \circled{1}, \circled{NB}, \cloud{Cloud note}.
+
+% Uncomment to insert the sad-face TikZ figure:
+% \CreateSadFace
+
+% ============================================================
+% SECTION 2: Problem solutions
+% Copy the subsection block below for each new problem.
+% ============================================================
+\section{Problems}
+
+\subsection{Problem 1}
+% Short problem statement goes here.
+
+\begin{dashframe}
+  \textbf{Given:} Write the conditions here. \\
+  \textbf{Find:} Write what must be proved / computed.
+\end{dashframe}
+
+\textbf{Solution.} Write the solution step by step here.
+
+\begin{nota bene}
+  Main idea or trap to avoid.
+\end{nota bene}
+
+% Final answer in a visible box:
+\begin{example}[Answer]
+  $\boxed{\text{Final answer here}}$
+\end{example}
+
+% --- Template for the next problem (copy-paste) ---
+% \subsection{Problem 2}
+% \begin{dashframe}
+%   \textbf{Given:} ... \\
+%   \textbf{Find:} ...
+% \end{dashframe}
+% \textbf{Solution.} ...
+% \begin{example}[Answer]
+%   $\boxed{\text{...}}$
+% \end{example}
+
+\end{document}
