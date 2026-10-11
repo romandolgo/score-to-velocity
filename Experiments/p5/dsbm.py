@@ -34,9 +34,14 @@ import warnings
 from collections.abc import Callable
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 from torch import Tensor
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", SyntaxWarning)
+    import ot
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -45,7 +50,10 @@ from p0.integrators import integrate, time_grid
 from p0.metrics import mmd2, mode_fractions, sliced_wasserstein, straightness
 from p0.models import MLP
 
+FIGURES = Path(__file__).parent / "figures"
+
 EPS_GRID = (0.0, 0.1, 1.0)
+EPS_NOISY = tuple(eps for eps in EPS_GRID if eps > 0)
 N_ITERS = 4
 N_TRAIN, N_EVAL, N_OT = 20_000, 10_000, 5_000
 TRAIN_STEPS, BATCH, LR = 5_000, 512, 1e-3
@@ -53,7 +61,9 @@ N_STEPS = 100
 T_MAX = 1 - 1e-3
 MODE_RADIUS = 1.2
 
-Batch = Callable[[Tensor, Tensor, float, torch.Generator], tuple[Tensor, Tensor, Tensor]]
+Batch = Callable[
+    [Tensor, Tensor, float, torch.Generator], tuple[Tensor, Tensor, Tensor]
+]
 
 
 def bridge_batch(x0: Tensor, x1: Tensor, eps: float, gen: torch.Generator):
@@ -110,7 +120,7 @@ def sample(
     gen: torch.Generator,
     return_traj: bool = False,
 ) -> Tensor:
-    """Euler-Maruyama for dX = v dt + sqrt(eps) dW from t = 0 to 1; an ODE at eps = 0."""
+    """Euler-Maruyama for dX = v dt + sqrt(eps) dW on [0, 1]; an ODE at eps = 0."""
     ts = time_grid(0.0, 1.0, N_STEPS)
     g = math.sqrt(eps) if eps > 0 else None
     return integrate(model, x0, ts, g=g, gen=gen, return_traj=return_traj)
@@ -160,35 +170,40 @@ def ot_references(x0: Tensor, x1: Tensor) -> dict[float, float]:
 
     Sinkhorn runs with regularization 2 eps for every eps > 0 of EPS_GRID.
     """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", SyntaxWarning)
-        import ot
-
     cost = torch.cdist(x0.double(), x1.double()).pow(2)
     a = torch.full((len(x0),), 1 / len(x0), dtype=torch.float64)
     b = torch.full((len(x1),), 1 / len(x1), dtype=torch.float64)
     refs = {0.0: (ot.emd(a, b, cost, numItermax=1_000_000) * cost).sum().item()}
-    for eps in EPS_GRID:
-        if eps > 0:
-            plan = ot.sinkhorn(
-                a, b, cost, reg=2 * eps, method="sinkhorn_log", numItermax=20_000, stopThr=1e-5
-            )
-            refs[eps] = (plan * cost).sum().item()
+    for eps in EPS_NOISY:
+        plan = ot.sinkhorn(
+            a,
+            b,
+            cost,
+            reg=2 * eps,
+            method="sinkhorn_log",
+            numItermax=20_000,
+            stopThr=1e-5,
+        )
+        refs[eps] = (plan * cost).sum().item()
     return refs
 
 
-def check_rectified_flow(x0: Tensor, x1: Tensor, z0: Tensor, bm: MLP, seed: int) -> float:
-    """Relative distance between samples of the eps = 0 model and of P3's Rectified Flow."""
+def check_rectified_flow(
+    x0: Tensor, x1: Tensor, z0: Tensor, bm: MLP, seed: int
+) -> float:
+    """Relative distance between samples of the eps = 0 model and Rectified Flow."""
     rf = fit(x0, x1, 0.0, seed=seed, batch=rf_batch)
     gen = torch.Generator().manual_seed(seed)
-    t, xt, target = bridge_batch(x0[:BATCH], x1[:BATCH], 0.0, gen)
+    _, _, target = bridge_batch(x0[:BATCH], x1[:BATCH], 0.0, gen)
     target_err = (target - (x1[:BATCH] - x0[:BATCH])).abs().max().item()
     x_bm, x_rf = sample(bm, z0, 0.0, gen), sample(rf, z0, 0.0, gen)
     rel = ((x_bm - x_rf).norm(dim=1).mean() / (x_rf - z0).norm(dim=1).mean()).item()
     print(f"  max |(x1 - x_t) / (1 - t) - (x1 - x0)| on a batch   {target_err:.1e}")
     print(f"  mean |X_1 - X_1^RF| / mean |X_1^RF - x0|             {rel:.1e}")
-    print(f"  transport cost   bridge matching {transport_cost(z0, x_bm):.4f}"
-          f"   rectified flow {transport_cost(z0, x_rf):.4f}")
+    print(
+        f"  transport cost   bridge matching {transport_cost(z0, x_bm):.4f}"
+        f"   rectified flow {transport_cost(z0, x_rf):.4f}"
+    )
     return rel
 
 
@@ -199,73 +214,62 @@ def label(eps: float) -> str:
     return "reflow" if eps == 0 else rf"IMF, $\varepsilon = {eps:g}$"
 
 
-def plot_metrics(rows, refs, baseline: float, out: str = "transport_cost.png") -> None:
-    import matplotlib
+def save(fig, name: str) -> None:
+    FIGURES.mkdir(exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(FIGURES / name, dpi=140)
+    plt.close(fig)
+    print(f"Saved {FIGURES.name}/{name}")
 
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
 
+def plot_metrics(rows, refs, baseline: float) -> None:
+    """Transport cost, straightness and the off-mode fraction by iteration."""
     iters = range(1, N_ITERS + 1)
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.2))
+    for ax, name in zip(axes, ("cost", "straightness", "outside")):
+        for eps in EPS_GRID:
+            values = [r[name] for r in rows[eps]]
+            ax.plot(iters, values, "o-", color=COLORS[eps], label=label(eps))
 
-    ax = axes[0]
-    for eps in EPS_GRID:
-        ax.plot(iters, [r["cost"] for r in rows[eps]], "o-", color=COLORS[eps], label=label(eps))
-    ax.axhline(refs[0.0], color="k", lw=1, ls="--", label="exact OT")
-    for eps in EPS_GRID:
-        if eps > 0:
-            ax.axhline(refs[eps], color=COLORS[eps], lw=1, ls=":",
-                       label=rf"Sinkhorn, reg $= 2\varepsilon = {2 * eps:g}$")
-    ax.set(ylabel=r"$E\|x_0 - x_1\|^2$", title="Transport cost")
-    ax.legend(frameon=False, fontsize=8)
+    axes[0].axhline(refs[0.0], color="k", lw=1, ls="--", label="exact OT")
+    for eps in EPS_NOISY:
+        name = rf"Sinkhorn, reg $= 2\varepsilon = {2 * eps:g}$"
+        axes[0].axhline(refs[eps], color=COLORS[eps], lw=1, ls=":", label=name)
+    axes[2].axhline(baseline, color="gray", lw=0.8, ls=":", label="target data")
 
-    ax = axes[1]
-    for eps in EPS_GRID:
-        ax.semilogy(iters, [r["straightness"] for r in rows[eps]], "o-", color=COLORS[eps],
-                    label=label(eps))
-    ax.set(title=r"Straightness $\int E\|(x_1 - x_0) - v(x_t, t)\|^2 dt$")
-    ax.legend(frameon=False, fontsize=8)
-
-    ax = axes[2]
-    for eps in EPS_GRID:
-        ax.plot(iters, [r["outside"] for r in rows[eps]], "o-", color=COLORS[eps], label=label(eps))
-    ax.axhline(baseline, color="gray", lw=0.8, ls=":", label="target data")
-    ax.set(ylim=0, title=rf"Fraction of $X_1$ farther than {MODE_RADIUS:g} from every mode")
-    ax.legend(frameon=False, fontsize=8)
-
-    for a in axes:
-        a.set(xlabel="iteration (1 = independent coupling)", xticks=list(iters))
-        a.spines[["top", "right"]].set_visible(False)
-        a.grid(alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(out, dpi=140)
-    plt.close(fig)
-    print(f"Saved {out}")
+    axes[0].set(ylabel=r"$E\|x_0 - x_1\|^2$", title="Transport cost")
+    axes[1].set(
+        yscale="log", title=r"Straightness $\int E\|(x_1 - x_0) - v(x_t, t)\|^2 dt$"
+    )
+    axes[2].set(
+        ylim=0, title=rf"Fraction of $X_1$ farther than {MODE_RADIUS:g} from every mode"
+    )
+    for ax in axes:
+        ax.set(xlabel="iteration (1 = independent coupling)", xticks=list(iters))
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.grid(alpha=0.25)
+        ax.legend(frameon=False, fontsize=8)
+    save(fig, "transport_cost.png")
 
 
-def plot_trajectories(trajs, n_show: int = 150, out: str = "bridge_matching.png") -> None:
+def plot_trajectories(trajs, n_show: int = 150) -> None:
     """Paths of every model: rows are eps, columns are IMF iterations."""
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    fig, axes = plt.subplots(len(EPS_GRID), N_ITERS, figsize=(3.4 * N_ITERS, 3.4 * len(EPS_GRID)))
+    fig, axes = plt.subplots(
+        len(EPS_GRID), N_ITERS, figsize=(3.4 * N_ITERS, 3.4 * len(EPS_GRID))
+    )
+    ends = dict(s=5, zorder=3)
     for i, eps in enumerate(EPS_GRID):
         for k, traj in enumerate(trajs[eps]):
             ax = axes[i, k]
             path = traj[:, :n_show]
             ax.plot(path[..., 0], path[..., 1], color="gray", lw=0.4, alpha=0.5)
-            ax.scatter(path[0, :, 0], path[0, :, 1], s=5, color="#2a78d6", zorder=3, label="$x_0$")
-            ax.scatter(path[-1, :, 0], path[-1, :, 1], s=5, color="#e34948", zorder=3, label="$X_1$")
+            ax.scatter(*path[0].T, color="#2a78d6", label="$x_0$", **ends)
+            ax.scatter(*path[-1].T, color="#e34948", label="$X_1$", **ends)
             ax.set_title(rf"$\varepsilon = {eps:g}$, iteration {k + 1}")
             ax.set(xlim=(-5.5, 5.5), ylim=(-5.5, 5.5), xticks=[], yticks=[])
             ax.set_aspect("equal")
     axes[0, 0].legend(frameon=False, fontsize=8, loc="upper left")
-    fig.tight_layout()
-    fig.savefig(out, dpi=130)
-    plt.close(fig)
-    print(f"Saved {out}")
+    save(fig, "bridge_matching.png")
 
 
 def main() -> None:
@@ -283,13 +287,15 @@ def main() -> None:
     print(f"Transport cost on {N_OT} evaluation points:")
     print(f"  independent coupling  {transport_cost(z0[:N_OT], z1[:N_OT]):.4f}")
     print(f"  exact OT              {refs[0.0]:.4f}")
-    for eps in EPS_GRID:
-        if eps > 0:
-            print(f"  Sinkhorn, reg = {2 * eps:<5g} {refs[eps]:.4f}")
+    for eps in EPS_NOISY:
+        print(f"  Sinkhorn, reg = {2 * eps:<5g} {refs[eps]:.4f}")
 
     rows, trajs, first = {}, {}, {}
     print(f"\n{N_ITERS} iterations, {TRAIN_STEPS} steps each:")
-    print(f"  {'eps':>5}{'iter':>6}{'cost':>9}{'straight':>10}{'SW':>8}{'MMD^2':>10}{'mode err':>10}{'outside':>9}")
+    print(
+        f"  {'eps':>5}{'iter':>6}{'cost':>9}{'straight':>10}"
+        f"{'SW':>8}{'MMD^2':>10}{'mode err':>10}{'outside':>9}"
+    )
     for eps in EPS_GRID:
         models = imf(x0, x1, eps, N_ITERS, seed=0)
         first[eps] = models[0]
@@ -297,10 +303,15 @@ def main() -> None:
         rows[eps] = [r for r, _ in results]
         trajs[eps] = [t for _, t in results]
         for k, r in enumerate(rows[eps], start=1):
-            print(f"  {eps:5g}{k:6d}{r['cost']:9.4f}{r['straightness']:10.4f}"
-                  f"{r['sw']:8.4f}{r['mmd2']:10.2e}{r['mode_err']:10.4f}{r['outside']:9.4f}")
-    print(f"  data vs data: SW {baseline_sw:.4f}, MMD^2 {baseline_mmd:.2e};"
-          f" outside, target data: {baseline_out:.4f}")
+            print(
+                f"  {eps:5g}{k:6d}{r['cost']:9.4f}{r['straightness']:10.4f}"
+                f"{r['sw']:8.4f}{r['mmd2']:10.2e}"
+                f"{r['mode_err']:10.4f}{r['outside']:9.4f}"
+            )
+    print(
+        f"  data vs data: SW {baseline_sw:.4f}, MMD^2 {baseline_mmd:.2e};"
+        f" outside, target data: {baseline_out:.4f}"
+    )
 
     print("\nBridge matching at eps = 0 vs Rectified Flow (same seed):")
     rel = check_rectified_flow(x0, x1, z0, first[0.0], seed=0)
