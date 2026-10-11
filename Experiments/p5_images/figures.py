@@ -1,10 +1,10 @@
 """
 Poster figures from the output of dsbm.py.
 
-    python figures.py runs/eps1 [runs/eps0 ...]
+    python figures.py runs/eps1 [runs/eps0 ...] [--frames 5]
 
 For every run directory:
-    trajectories.png   samples at t = 0 ... 1, forward and backward
+    trajectories.png   --frames samples at t = 0 ... 1, forward and backward
     iterations.png     the same inputs transported after each IMF iteration
     samples.png        several outputs per input (the SDE is stochastic for eps > 0)
 and, in the first directory, cost.png: transport cost by IMF iteration, one line
@@ -81,7 +81,7 @@ def pair_figure(panels, path: Path, cmap: str) -> None:
     print(path)
 
 
-def run_figures(run: Path, rows: int, cmap: str) -> None:
+def run_figures(run: Path, rows: int, n_frames: int, cmap: str) -> None:
     config = json.loads((run / "metrics.json").read_text())["config"]
     src, dst, eps = config["source"], config["target"], config["eps"]
     names = {"fwd": f"{src} → {dst}", "bwd": f"{dst} → {src}"}
@@ -92,7 +92,7 @@ def run_figures(run: Path, rows: int, cmap: str) -> None:
     panels = []
     for key in ("fwd", "bwd"):
         traj = data[f"{key}_traj"][-1][:, :rows]
-        frames = np.linspace(0, len(traj) - 1, 9).round().astype(int)
+        frames = np.linspace(0, len(traj) - 1, n_frames).round().astype(int)
         times = frames / (len(traj) - 1)
         labels = [f"{t if key == 'fwd' else 1 - t:.2g}" for t in times]
         labels[0] = f"t = {labels[0]}"
@@ -164,11 +164,12 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("runs", type=Path, nargs="+")
     p.add_argument("--rows", type=int, default=10, help="inputs per grid")
+    p.add_argument("--frames", type=int, default=9, help="time points per trajectory")
     p.add_argument("--dark", action="store_true", help="white ink on black")
     args = p.parse_args()
 
     for run in args.runs:
-        run_figures(run, args.rows, "gray" if args.dark else "gray_r")
+        run_figures(run, args.rows, args.frames, "gray" if args.dark else "gray_r")
     cost_figure(args.runs, args.runs[0] / "cost.png")
 
 
