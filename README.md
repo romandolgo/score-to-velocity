@@ -23,9 +23,9 @@ Needed packages: torch, numpy, matplotlib, scikit-learn, pandas, POT, plotly, ka
 | Task | Run | Output |
 |---|---|---|
 | P0 | `python check_oracle.py`, `python check_ou.py` | `datasets.png`, `oracle_two_modes.png`, `ou_check.png` |
-| P2 | `p2_score_sde.ipynb` | `figures/p2_quality_vs_nfe.png`, `figures/p2_loglik_scatter.png` |
+| P2 | `p2_score_sde.ipynb`, `python p2_quality_vs_nfe.py` | `figures/p2_quality_vs_nfe.png`, `figures/p2_loglik_scatter.png`, `figures/p2_quality_vs_nfe.pdf` |
 | P3 | `reflow_try.ipynb` | trajectories before and after reflow, quality by NFE |
-| P4 | `p4_one_model_many_samplers.ipynb` | `figures/p4_heatmaps.png` and the other `figures/p4_*.png` |
+| P4 | `p4_one_model_many_samplers.ipynb`, `python p4_quality_heatmaps.py` | `figures/p4_heatmaps.png` and the other `figures/p4_*.png`, `figures/p4_heatmap_*.pdf` |
 | P5 | `python dsbm.py`, `moons_to_swiss_roll.ipynb` | `figures/transport_cost.png`, `figures/bridge_matching.png`, `figures/*.pdf` |
 
 P2 and P4 keep their trained models in `checkpoints/` and their computed tables in `results/`, so the notebooks rerun in a minute or two. To recompute from scratch, delete those folders (about 30 minutes on a CPU for P2, 15 more for P4) or run the stages listed at the top of `p2_experiments.py` and `p4_experiments.py`. P4 reads the VP score model from `Experiments/p2/checkpoints/`.
