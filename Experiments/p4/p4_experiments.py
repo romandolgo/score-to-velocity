@@ -23,11 +23,16 @@
 import copy
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
 
-from common.metrics import mode_tv, sliced_wasserstein
+HERE = Path(__file__).resolve().parent
+P2 = HERE.parent / 'p2'
+sys.path[:0] = [str(HERE.parents[1]), str(P2)]
+
+from common.metrics import mode_tv, sliced_w1
 from common.nets import MLP
 from common.paths import (RFPath, field_from_score, field_from_velocity, oracle_score,
                           sample_family, vp_score_on_path)
@@ -67,7 +72,7 @@ def train_rf(steps=10_000, bs=1024, lr=2e-3, seed=0):
 
 def load_rf_model():
     """Модель скорости. Когда будет готова модель пары C из П3 — загрузить её здесь."""
-    ck = load_or_run('checkpoints/velocity_RF.pt', train_rf)
+    ck = load_or_run(HERE / 'checkpoints/velocity_RF.pt', train_rf)
     net = MLP(hidden=256, layers=4)
     net.load_state_dict(ck['state_dict'])
     net.eval()
@@ -105,8 +110,8 @@ def grid(name, schedule='const'):
                                   schedule=schedule)
                 bad = ~torch.isfinite(x).all(1)
                 x = x[~bad]
-                sw[i, j, k] = sliced_wasserstein(x, ref) if len(x) > 100 else np.nan
-                tv[i, j, k] = mode_tv(x, mix) if len(x) > 100 else np.nan
+                sw[i, j, k] = sliced_w1(x, ref) if len(x) > 100 else np.nan
+                tv[i, j, k] = mode_tv(x, mix.means, mix.weights) if len(x) > 100 else np.nan
     print(f'grid {name} {schedule}: {time.time() - t0:.0f} с')
     return {'sw': sw, 'tv': tv}
 
@@ -139,6 +144,6 @@ if __name__ == '__main__':
     elif stage == 'grid':
         sched = sys.argv[3] if len(sys.argv) > 3 else 'const'
         suffix = '' if sched == 'const' else f'_{sched}'
-        load_or_run(f'results/p4_grid_{sys.argv[2]}{suffix}.pt', grid, sys.argv[2], sched)
+        load_or_run(HERE / f'results/p4_grid_{sys.argv[2]}{suffix}.pt', grid, sys.argv[2], sched)
     elif stage == 'field_error':
-        load_or_run('results/p4_field_error.pt', field_error)
+        load_or_run(HERE / 'results/p4_field_error.pt', field_error)

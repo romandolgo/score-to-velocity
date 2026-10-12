@@ -15,7 +15,7 @@
 import math
 import torch
 
-from .integrators import euler_maruyama
+from .integrators import integrate
 
 
 class RFPath:
@@ -92,6 +92,7 @@ def vp_score_on_path(vp_sde, vp_score_fn, path):
     return s
 
 
+@torch.no_grad()
 def sample_family(field, g, n, nfe, t0=0.01, t1=0.99, generator=None, d=2, schedule='const'):
     """Эйлер–Маруяма для dx = [v + 1/2 g_t^2 s] dt + g_t dW от t0 до t1 (g = 0 — ODE, метод Эйлера).
 
@@ -111,5 +112,5 @@ def sample_family(field, g, n, nfe, t0=0.01, t1=0.99, generator=None, d=2, sched
         v, s = field(x, t)
         return v + 0.5 * gfun(t) ** 2 * s
 
-    x = euler_maruyama(x, drift, gfun, ts, generator=generator, noise_last=False)
+    x = integrate(drift, x, ts, g=gfun, gen=generator, noise_last=False)
     return x / t1

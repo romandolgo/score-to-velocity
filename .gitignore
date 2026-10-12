@@ -227,3 +227,5 @@ CLAUDE.md
 Experiments/p5_images/data/
 Experiments/p5_images/runs/
 Experiments/p5/figures/
+.DS_Store
+.idea/

@@ -18,11 +18,15 @@ Run from this directory:  python check_ou.py
 from __future__ import annotations
 
 import math
+import sys
+from pathlib import Path
 
 import numpy as np
 import torch
 
-from integrators import euler, euler_maruyama, time_grid
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from common.integrators import euler, euler_maruyama, time_grid
 
 THETA, S, X0, T = 1.0, 1.0, 3.0, 1.0
 

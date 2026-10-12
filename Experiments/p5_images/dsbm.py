@@ -45,9 +45,9 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent / "p0"))
+sys.path.insert(0, str(HERE.parents[1]))
 
-from models import TimeEmbedding  # noqa: E402
+from common.models import TimeEmbedding  # noqa: E402
 
 
 class ResBlock(nn.Module):

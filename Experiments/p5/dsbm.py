@@ -43,12 +43,12 @@ with warnings.catch_warnings():
     warnings.simplefilter("ignore", SyntaxWarning)
     import ot
 
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 
-from p0.datasets import eight_gaussians, sample_moons
-from p0.integrators import integrate, time_grid
-from p0.metrics import mmd2, mode_fractions, sliced_wasserstein, straightness
-from p0.models import MLP
+from common.datasets import eight_gaussians, sample_moons
+from common.integrators import integrate, time_grid
+from common.metrics import mmd2, mode_fractions, sliced_wasserstein, straightness
+from common.models import MLP
 
 FIGURES = Path(__file__).parent / "figures"
 

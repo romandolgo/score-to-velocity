@@ -11,10 +11,15 @@ Run from this directory:  python check_oracle.py
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import torch
 from torch import Tensor
 
-import datasets
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from common import datasets
 
 
 def fd_grad(f, x: Tensor, h: float = 1e-5) -> Tensor:

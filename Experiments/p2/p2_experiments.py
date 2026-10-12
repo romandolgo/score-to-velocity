@@ -22,11 +22,15 @@ import copy
 import os
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
 
-from common.metrics import mode_tv, sliced_wasserstein
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[1]))
+
+from common.metrics import mode_tv, sliced_w1
 from common.nets import ScoreModel
 from common.oracle import eight_gaussians
 from common.samplers import pf_ode_loglik, sample_pf_ode, sample_reverse_sde
@@ -44,9 +48,8 @@ mix = eight_gaussians()                      # 8 гауссиан по круг�
 SDES = {'VE': VESDE(sigma_min=0.01, sigma_max=10.0), 'VP': VPSDE(beta_min=0.1, beta_max=20.0)}
 SAMPLERS = {'SDE': sample_reverse_sde, 'ODE': sample_pf_ode}
 
-os.makedirs('results', exist_ok=True)
-os.makedirs('checkpoints', exist_ok=True)
-os.makedirs('figures', exist_ok=True)
+for folder in ('results', 'checkpoints', 'figures'):
+    (HERE / folder).mkdir(exist_ok=True)
 
 
 def _pack(obj):
@@ -116,7 +119,7 @@ def train(name, steps=10_000, bs=1024, lr=2e-3, seed=0):
 
 
 def load_model(name):
-    ck = load_or_run(f'checkpoints/score_{name}.pt', train, name)
+    ck = load_or_run(HERE / f'checkpoints/score_{name}.pt', train, name)
     model = ScoreModel(SDES[name], hidden=HIDDEN, layers=LAYERS)
     model.load_state_dict(ck['state_dict'])
     model.eval()
@@ -138,8 +141,8 @@ def sweep(name, sampler_name):
         for i, nfe in enumerate(NFES):
             for j, s in enumerate(SEEDS):
                 x = sampler(sde, fn, N_EVAL, nfe, eps=EPS, generator=torch.Generator().manual_seed(s))
-                sw[i, j] = sliced_wasserstein(x, ref)
-                tv[i, j] = mode_tv(x, mix)
+                sw[i, j] = sliced_w1(x, ref)
+                tv[i, j] = mode_tv(x, mix.means, mix.weights)
         out[src] = {'sw': sw, 'tv': tv}
     print(f'sweep {name} {sampler_name}: {time.time() - t0:.0f} с')
     return out
@@ -148,9 +151,10 @@ def sweep(name, sampler_name):
 def metric_floor():
     """Пол метрик: расстояние между двумя независимыми выборками из самих данных."""
     ref = reference_sample()
-    sw = [sliced_wasserstein(mix.sample(N_EVAL, generator=torch.Generator().manual_seed(500 + s)), ref)
+    sw = [sliced_w1(mix.sample(N_EVAL, generator=torch.Generator().manual_seed(500 + s)), ref)
           for s in range(10)]
-    tv = [mode_tv(mix.sample(N_EVAL, generator=torch.Generator().manual_seed(600 + s)), mix) for s in range(10)]
+    tv = [mode_tv(mix.sample(N_EVAL, generator=torch.Generator().manual_seed(600 + s)), mix.means, mix.weights)
+          for s in range(10)]
     return {'sw': np.array(sw), 'tv': np.array(tv)}
 
 
@@ -220,10 +224,10 @@ if __name__ == '__main__':
     if stage == 'train':
         load_model(name)
     elif stage == 'sweep':
-        load_or_run(f'results/sweep_{name}_{sys.argv[3]}.pt', sweep, name, sys.argv[3])
+        load_or_run(HERE / f'results/sweep_{name}_{sys.argv[3]}.pt', sweep, name, sys.argv[3])
     elif stage == 'loglik':
-        load_or_run(f'results/loglik_{name}.pt', loglik, name)
+        load_or_run(HERE / f'results/loglik_{name}.pt', loglik, name)
     elif stage == 'hutch':
-        load_or_run(f'results/hutch_{name}.pt', hutchinson_vs_k, name)
+        load_or_run(HERE / f'results/hutch_{name}.pt', hutchinson_vs_k, name)
     elif stage == 'prior':
-        load_or_run(f'results/oracle_prior_{name}.pt', oracle_loglik_error, name)
+        load_or_run(HERE / f'results/oracle_prior_{name}.pt', oracle_loglik_error, name)

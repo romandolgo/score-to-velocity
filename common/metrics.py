@@ -34,6 +34,23 @@ def sliced_wasserstein(x, y, n_proj: int = 256, p: int = 2, seed: int = 0) -> fl
     return (px - py).abs().pow(p).mean().pow(1 / p).item()
 
 
+def sliced_w1(x, y, n_proj: int = 512, seed: int = 0) -> float:
+    """Sliced 1-Wasserstein distance of P2 and P4; the longer sample is truncated.
+
+    Separate from `sliced_wasserstein` because the stored results of P2 and P4
+    depend on how this one draws its directions.
+    """
+    x, y = _as_pair(x, y)
+    n = min(len(x), len(y))
+    x, y = x[:n], y[:n]
+    gen = torch.Generator().manual_seed(seed)
+    dirs = torch.randn(x.shape[1], n_proj, generator=gen).to(x)
+    dirs = dirs / dirs.norm(dim=0, keepdim=True)
+    px = (x @ dirs).sort(dim=0).values
+    py = (y @ dirs).sort(dim=0).values
+    return (px - py).abs().mean().item()
+
+
 def mmd2(
     x,
     y,
@@ -79,6 +96,13 @@ def mode_fractions(x, centers, radius: float | None = None) -> Tensor:
     if radius is not None:
         idx = idx[dist <= radius]
     return torch.bincount(idx, minlength=len(centers)) / len(x)
+
+
+def mode_tv(x, centers, weights) -> float:
+    """Total variation between the mode fractions of x and the true weights."""
+    fractions = mode_fractions(x, centers)
+    weights = torch.as_tensor(weights).to(fractions)
+    return 0.5 * (fractions - weights).abs().sum().item()
 
 
 @torch.no_grad()

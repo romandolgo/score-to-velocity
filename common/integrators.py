@@ -21,6 +21,7 @@ def integrate(
     g: Diffusion | None = None,
     gen: torch.Generator | None = None,
     return_traj: bool = False,
+    noise_last: bool = True,
 ) -> Tensor:
     """Euler-Maruyama for dx = f(x, t) dt + g(t) dW on the time grid ts.
 
@@ -33,15 +34,18 @@ def integrate(
     drift(x, t) gets x of shape (B, d) and a 0-d tensor t, as `models.MLP` expects.
     g is a constant or a callable of t. Returns x at ts[-1], or the whole
     trajectory of shape (T, B, d) if return_traj, which is what `straightness`
-    takes. Gradients are tracked, so wrap sampling in torch.no_grad().
+    takes. With noise_last = False the last step adds no noise, so a sampler
+    returns the denoised point. Gradients are tracked, so wrap sampling in
+    torch.no_grad().
     """
     ts = torch.as_tensor(ts, dtype=x0.dtype, device=x0.device)
     x = x0
     traj = [x] if return_traj else None
-    for t, t_next in zip(ts[:-1], ts[1:]):
+    last = len(ts) - 2
+    for k, (t, t_next) in enumerate(zip(ts[:-1], ts[1:])):
         dt = t_next - t
         x = x + drift(x, t) * dt
-        if g is not None:
+        if g is not None and (noise_last or k < last):
             gt = g(t) if callable(g) else g
             noise = torch.randn(x.shape, generator=gen, dtype=x.dtype).to(x.device)
             x = x + gt * dt.abs().sqrt() * noise
@@ -62,6 +66,9 @@ def euler_maruyama(
     ts: Tensor,
     gen: torch.Generator | None = None,
     return_traj: bool = False,
+    noise_last: bool = True,
 ) -> Tensor:
     """Euler-Maruyama for dx = f(x, t) dt + g(t) dW."""
-    return integrate(drift, x0, ts, g=g, gen=gen, return_traj=return_traj)
+    return integrate(
+        drift, x0, ts, g=g, gen=gen, return_traj=return_traj, noise_last=noise_last
+    )

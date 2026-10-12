@@ -3,7 +3,7 @@
 score_fn(x, t) -> grad log p_t(x): либо обученная сеть, либо точный score оракула.
 """
 import torch
-from .integrators import euler_maruyama, euler_ode
+from .integrators import euler, integrate
 
 
 def time_grid(sde, n_steps, eps=1e-3, reverse=True):
@@ -22,19 +22,21 @@ def pf_ode_drift(sde, score_fn):
     return lambda x, t: sde.f(x, t) - 0.5 * sde.g(t) ** 2 * score_fn(x, t)
 
 
+@torch.no_grad()
 def sample_reverse_sde(sde, score_fn, n, n_steps, eps=1e-3, generator=None):
     """Эйлер–Маруяма для обратного SDE от T до eps. NFE = n_steps."""
     x = sde.prior_sample(n, generator=generator)
     ts = time_grid(sde, n_steps, eps)
-    return euler_maruyama(x, reverse_sde_drift(sde, score_fn), sde.g, ts,
-                          generator=generator, noise_last=False)
+    return integrate(reverse_sde_drift(sde, score_fn), x, ts, g=sde.g,
+                     gen=generator, noise_last=False)
 
 
+@torch.no_grad()
 def sample_pf_ode(sde, score_fn, n, n_steps, eps=1e-3, generator=None):
     """Эйлер для probability flow ODE от T до eps. NFE = n_steps."""
     x = sde.prior_sample(n, generator=generator)
     ts = time_grid(sde, n_steps, eps)
-    return euler_ode(x, pf_ode_drift(sde, score_fn), ts)
+    return euler(pf_ode_drift(sde, score_fn), x, ts)
 
 
 def _div_exact(F, x):
@@ -51,7 +53,8 @@ def _div_hutchinson(F, x, v):
     return (vjp * v).sum(1)
 
 
-def pf_ode_loglik(sde, score_fn, x0, n_steps=1000, eps=1e-3, method="exact", generator=None):
+def pf_ode_loglik(sde, score_fn, x0, n_steps=1000, eps=1e-3, method="exact", generator=None,
+                  prior_logp=None):
     """log p_eps(x0) через probability flow ODE (Song et al., приложение D.2).
 
     Интегрируем ODE dx = F(x, t) dt вперёд от eps до T и одновременно
@@ -62,6 +65,9 @@ def pf_ode_loglik(sde, score_fn, x0, n_steps=1000, eps=1e-3, method="exact", gen
              "hutchinson"   — оценка Хатчинсона с одним вектором Радемахера на точку,
                               фиксированным вдоль всей траектории (так делается на практике).
     Шаг интегрирования — метод Эйлера, F и div F вычисляются в одной и той же точке.
+
+    prior_logp — плотность, которой заменяем log p_T; по умолчанию приор SDE. У VE приор
+    N(0, s_max^2 I) заметно отличается от настоящего p_T, и это даёт вклад в ошибку log p.
     """
     ts = time_grid(sde, n_steps, eps, reverse=False)
     x = x0.clone()
@@ -82,4 +88,4 @@ def pf_ode_loglik(sde, score_fn, x0, n_steps=1000, eps=1e-3, method="exact", gen
         F = (sde.f(x, t) + F_score).detach()
         integral += div * dt
         x = x + F * dt
-    return sde.prior_logp(x) + integral
+    return (prior_logp or sde.prior_logp)(x) + integral
