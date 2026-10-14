@@ -39,7 +39,7 @@ class MLP(nn.Module):
         self,
         dim: int = 2,
         hidden: int = 256,
-        depth: int = 3,
+        depth: int = 4,
         t_dim: int = 64,
         out_dim: int | None = None,
     ):
